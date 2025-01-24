@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6px!626om47f!^4c11)t9a+y%wi8l4^d-188-mq19h3^g!quq%'
+SECRET_KEY = 'django-insecure-8mj^0w@@1i)h%im*@@k1y2*joou(xii=)kt8%$cn9d5u=_f=$k'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -104,23 +104,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
-
-DJOSER = {
-    'USER_ID_FIELD': 'id',
-    'LOGIN_FIELD': 'email',  # Если используешь email для логина
-    'SERIALIZERS': {
-        'user': 'users.serializers.CustomUserSerializer',  # Подключи кастомный сериализатор
-    },
-}
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
@@ -146,6 +129,3 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.FoodgramUser'
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
