@@ -9,6 +9,7 @@ from constants.pagination_constants import DEFAULT_PAGE_SIZE
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_URL = os.getenv("BASE_URL", "http://localhost:7777")
 
 SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
