@@ -8,6 +8,7 @@ RUN pip install -r requirements.txt --no-cache-dir --timeout=300
 
 COPY . .
 
+COPY backend/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]

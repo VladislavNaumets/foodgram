@@ -7,11 +7,11 @@ from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
-    help = "Import data from CSV file to Ingrediemt model"
+    help = "Импорт ингридиентов из CSV в бд"
 
     def handle(self, *args, **options):
-        ingredients = ingredients = os.path.join(
-            "/app/data", "ingredients.csv"
+        ingredients = os.path.join(
+            os.path.dirname(__file__), "../data/ingredients.csv"
         )
         with open(ingredients, encoding="utf-8") as file:
             reader = csv.reader(file)
