@@ -120,7 +120,7 @@ jobs:
           context: ./nginx/
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}tatyana7/foodgram_gateway:latest
+            ${{ secrets.DOCKER_USERNAME }}/foodgram_gateway:latest
   
   deploy:
     runs-on: ubuntu-latest
