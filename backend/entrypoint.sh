@@ -1,8 +1,4 @@
 #!/bin/sh
-set -e
-
-echo "Ожидание доступности базы данных..."
-/app/wait-for-it.sh db:5432 --timeout=30 --strict -- echo "База данных доступна"
 
 python manage.py migrate
 python manage.py collectstatic --noinput
