@@ -8,8 +8,12 @@ services:
     env_file: .env
     volumes:
       - pg_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
   backend:
-    image: klinicwork/foodgram_backend
+    container_name: backend
+    build: ./backend/
     env_file: .env
     volumes:
       - static:/backend_static
@@ -22,7 +26,7 @@ services:
 
   frontend:
     env_file: .env
-    image: klinicwork/foodgram_frontend
+    build: ./frontend/
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
@@ -30,7 +34,8 @@ services:
       - app-network
 
   gateway:
-    image: klinicwork/foodgram_gateway
+    container_name: gateway
+    build: ./nginx/
     env_file: .env
     depends_on:
       - backend
@@ -47,3 +52,4 @@ volumes:
   pg_data:
   static:
   media:
+

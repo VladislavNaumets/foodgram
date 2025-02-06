@@ -8,6 +8,11 @@ COPY requirements/requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir --timeout=300
 
 COPY . .
+
+COPY wait-for-it.sh /app/wait-for-it.sh
+
+RUN chmod +x /app/wait-for-it.sh
+
 COPY entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh

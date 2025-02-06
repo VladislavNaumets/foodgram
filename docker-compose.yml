@@ -8,25 +8,28 @@ services:
     env_file: .env
     volumes:
       - pg_data:/var/lib/postgresql/data
-    networks:
-      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodgram_user -d foodgram"]
+      interval: 5s
+      retries: 5
+      timeout: 3s
 
   backend:
-    container_name: backend
-    build: ./backend/
+    image: klinicwork/foodgram_backend
     env_file: .env
     volumes:
       - static:/backend_static
       - media:/app/media
       - ./backend/data:/app/data
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network
 
   frontend:
     env_file: .env
-    build: ./frontend/
+    image: klinicwork/foodgram_frontend
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
@@ -34,8 +37,7 @@ services:
       - app-network
 
   gateway:
-    container_name: gateway
-    build: ./nginx/
+    image: klinicwork/foodgram_gateway
     env_file: .env
     depends_on:
       - backend
@@ -52,4 +54,3 @@ volumes:
   pg_data:
   static:
   media:
-
