@@ -4,9 +4,11 @@ WORKDIR /app
 
 COPY requirements/requirements.txt .
 
+
 RUN pip install -r requirements.txt --no-cache-dir --timeout=300
 
 COPY . .
+COPY entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 

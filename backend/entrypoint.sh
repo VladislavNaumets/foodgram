@@ -4,6 +4,7 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 
 if [ -f /app/data/ingredients.csv ]; then
+
     echo "Импорт данных из ingredients.csv..."
     python manage.py ingredients_import
 else

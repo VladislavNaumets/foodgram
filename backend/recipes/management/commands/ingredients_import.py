@@ -7,19 +7,23 @@ from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
-    help = "Import data from CSV file to Ingrediemt model"
+    help = "Импорт ингридиентов из CSV в бд"
 
     def handle(self, *args, **options):
-        ingredients = ingredients = os.path.join(
-            "/app/data", "ingredients.csv"
-        )
-        with open(ingredients, encoding="utf-8") as file:
+        ingredients_path = os.path.join("/app/data", "ingredients.csv")
+
+        if not os.path.exists(ingredients_path):
+            self.stdout.write(self.style.ERROR(
+                f"Файл {ingredients_path} не найден!"
+            ))
+            return
+        with open(ingredients_path, encoding="utf-8") as file:
             reader = csv.reader(file)
             for row in reader:
-                ingredient, created = Ingredient.objects.get_or_create(
+                Ingredient.objects.get_or_create(
                     name=row[0], defaults={"measurement_unit": row[1]}
                 )
-                # если требуется проверка внесения в базу,
+                # если требуется проверка внесения всех ингридиентов в базу,
                 # разкомитить, инфа появится при запуске контейнера с беком
                 # if created:
                 #     self.stdout.write(
