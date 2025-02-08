@@ -22,7 +22,7 @@ services:
     volumes:
       - static:/backend_static
       - media:/app/media
-      - ./backend/data:/app/data
+      - ./backend/data:/app/backend/data
     depends_on:
       db:
         condition: service_healthy
