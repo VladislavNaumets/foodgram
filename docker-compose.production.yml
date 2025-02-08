@@ -21,7 +21,7 @@ services:
     env_file: .env
     volumes:
       - static:/backend_static
-      - media:/app/media
+      - ./backend/media:/app/media
       - ./backend/data:/app/backend/data
     depends_on:
       db:
@@ -48,7 +48,7 @@ services:
       - 7777:80
     volumes:
       - static:/static
-      - media:/media
+      - ./backend/media:/app/media
     networks:
       - foodgram-network
 
