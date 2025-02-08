@@ -35,5 +35,6 @@ else:
 EOF
 fi
 
+mkdir -p /backend_static/static/
 cp -r /app/collected_static/. /backend_static/static/
 exec "$@"
