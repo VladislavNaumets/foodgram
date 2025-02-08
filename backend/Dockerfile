@@ -9,10 +9,6 @@ RUN pip install -r requirements.txt --no-cache-dir --timeout=300
 
 COPY . .
 
-
-RUN chmod +x /app/wait-for-it.sh
-
-
 RUN chmod +x /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -1,1 +1,0 @@
-./wait-for-it.sh db:5432 --timeout=30 --strict -- echo "База данных доступна"

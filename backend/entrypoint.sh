@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [ ! -f /app/data/ingredients.csv ]; then
+    echo "Файл ingredients.csv не найден в /app/data/. Копируем из образа..."
+    cp /app/ingredients.csv /app/data/ingredients.csv
+fi
+
 python manage.py migrate
 python manage.py collectstatic --noinput
 
