@@ -17,7 +17,9 @@ class Command(BaseCommand):
         if os.path.exists(ingredients_path):
             self.import_ingredients(ingredients_path)
         else:
-            self.stdout.write(self.style.ERROR(f"Файл {ingredients_path} не найден!"))
+            self.stdout.write(self.style.ERROR(
+                f"Файл {ingredients_path} не найден!")
+            )
 
         # Импорт тегов
         tags_path = os.path.join(data_path, "tags.csv")
@@ -33,8 +35,14 @@ class Command(BaseCommand):
         with open(file_path, encoding="utf-8") as file:
             reader = csv.reader(file)
             for row in reader:
-                if len(row) != 2:  # Проверяем, чтобы было 2 колонки (название, ед. измерения)
-                    self.stdout.write(self.style.ERROR(f"Ошибка в строке (ингредиенты): {row}"))
+                if len(row) != 2:
+                    # Проверяем,
+                    # чтобы было 2 колонки (название, ед. измерения)
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"Ошибка в строке (ингредиенты): {row}"
+                        )
+                    )
                     continue
 
                 name, measurement_unit = row
@@ -44,9 +52,11 @@ class Command(BaseCommand):
 
                 # Дебаг-логирование (по желанию)
                 # if created:
-                #     self.stdout.write(self.style.SUCCESS(f"Добавлен ингредиент: {name}"))
+                #     self.stdout.write(self.style.SUCCESS(
+                # f"Добавлен ингредиент: {name}"))
                 # else:
-                #     self.stdout.write(self.style.WARNING(f"Ингредиент {name} уже существует."))
+                #     self.stdout.write(self.style.WARNING(
+                # f"Ингредиент {name} уже существует."))
 
         self.stdout.write(self.style.SUCCESS("Импорт ингредиентов завершён!"))
 
@@ -55,17 +65,25 @@ class Command(BaseCommand):
         with open(file_path, encoding="utf-8") as file:
             reader = csv.reader(file)
             for row in reader:
-                if len(row) != 2:  # Проверяем, чтобы было 2 колонки (название, slug)
-                    self.stdout.write(self.style.ERROR(f"Ошибка в строке (теги): {row}"))
+                if len(row) != 2:
+                    # Проверяем,
+                    # чтобы было 2 колонки (название, slug)
+                    self.stdout.write(
+                        self.style.ERROR(f"Ошибка в строке (теги): {row}")
+                    )
                     continue
 
                 name, slug = row
-                tag, created = Tag.objects.get_or_create(name=name, defaults={"slug": slug})
+                tag, created = Tag.objects.get_or_create(
+                    name=name, defaults={"slug": slug}
+                )
 
                 # Дебаг-логирование (по желанию)
                 # if created:
-                #     self.stdout.write(self.style.SUCCESS(f"Добавлен тег: {name} ({slug})"))
+                #     self.stdout.write(
+                # self.style.SUCCESS(f"Добавлен тег: {name} ({slug})"))
                 # else:
-                #     self.stdout.write(self.style.WARNING(f"Тег {name} ({slug}) уже существует."))
+                #     self.stdout.write(self.style.WARNING(
+                # f"Тег {name} ({slug}) уже существует."))
 
         self.stdout.write(self.style.SUCCESS("Импорт тегов завершён!"))
