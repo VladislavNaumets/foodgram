@@ -1,12 +1,13 @@
 import uuid
+
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from constants.recipes_constants import (
-    COOKING_TIME, LENGTH_INGREDIENT, LENGTH_MESURE_UNIT, LENGTH_TAG,
-    LENGTH_TO_DISPLAY, MIN_AMOUNT, RECIPE_NAME_LENGTH, SHORT_LINK_LENGTH
-)
+from constants.recipes_constants import (COOKING_TIME, LENGTH_INGREDIENT,
+                                         LENGTH_MESURE_UNIT, LENGTH_TAG,
+                                         LENGTH_TO_DISPLAY, MIN_AMOUNT,
+                                         RECIPE_NAME_LENGTH, SHORT_LINK_LENGTH)
 from recipes.validators import validate_slug
 
 User = get_user_model()
