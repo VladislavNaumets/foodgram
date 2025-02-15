@@ -18,9 +18,8 @@ from api.permissions import ActionRestriction, IsAuthorOrStaff
 from api.serializers import (AvatarSerializer, FavoriteSerializer,
                              IngredientSerializer, NewUserSerializer,
                              RecipeIWriteSerializer, RecipeReadSerializer,
-                             SubscribeActionSerializer,
-                             SubscriptionSerializer, TagSerializer,
-                             UserCreateSerializer)
+                             SubscribeActionSerializer, SubscriptionSerializer,
+                             TagSerializer, UserCreateSerializer)
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                             ShoppingCart, Tag)
 from users.models import Subscription
