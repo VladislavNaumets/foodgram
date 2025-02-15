@@ -28,3 +28,9 @@ class UserAdmin(BaseUserAdmin):
     list_display = ("username", "first_name", "last_name", "email")
     search_fields = ("username", "email")
     inlines = (SubscriptionInline, FavoriteInline, ShoppingCartInline)
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("user", "subscribed_to")
+    search_fields = ("user__username", "subscribed_to__username")

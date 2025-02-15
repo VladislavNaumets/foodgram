@@ -1,6 +1,8 @@
 from django.contrib import admin
-
-from recipes.models import Ingredient, IngredientRecipe, Recipe, Tag, TagRecipe
+from recipes.models import (
+    Ingredient, IngredientRecipe, Recipe, Tag,
+    TagRecipe, Favorite, ShoppingCart
+)
 
 
 class TagRecipeInline(admin.TabularInline):
@@ -11,12 +13,13 @@ class TagRecipeInline(admin.TabularInline):
 class IngredientRecipeInline(admin.TabularInline):
     model = IngredientRecipe
     extra = 1
+    min_num = 1
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     inlines = (TagRecipeInline, IngredientRecipeInline)
-    list_display = ("name", "author", "favorite_count_display")
+    list_display = ("name", "author", "favorite_count_display", "pub_date")
     search_fields = ("author__username", "name")
     list_filter = ("tags",)
     readonly_fields = ("favorite_count_display", "short_link")
@@ -28,11 +31,35 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)
+    list_display = ("name", "slug")
+    search_fields = ("name", "slug")
 
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ("name", "measurement_unit")
     search_fields = ("name",)
+
+
+@admin.register(IngredientRecipe)
+class IngredientRecipeAdmin(admin.ModelAdmin):
+    list_display = ("recipe", "ingredient", "amount")
+    search_fields = ("recipe__name", "ingredient__name")
+
+
+@admin.register(TagRecipe)
+class TagRecipeAdmin(admin.ModelAdmin):
+    list_display = ("recipe", "tag")
+    search_fields = ("recipe__name", "tag__name")
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ("user", "recipe")
+    search_fields = ("user__username", "recipe__name")
+
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+    list_display = ("user", "recipe")
+    search_fields = ("user__username", "recipe__name")
