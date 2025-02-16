@@ -32,7 +32,7 @@ from api.serializers import (
     UserGetSerializer,
     UserPostSerializer,
 )
-from backend.constants.constant import ZERO
+from constants.constant import ZERO
 from recipes.models import (
     Favorite,
     Ingredient,
