@@ -59,7 +59,7 @@ urlpatterns = [
         name="user-avatar",
     ),
     path(
-        "users/<int:user_id>/subscribe/",
+        "users/<int:pk>/subscribe/",
         UserViewSet.as_view({"post": "subscribe", "delete": "unsubscribe"}),
         name="subscribe-to",
     ),
