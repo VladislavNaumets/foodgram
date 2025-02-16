@@ -15,8 +15,11 @@ router.register(r"users", UserViewSet, basename="user")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("auth/", include("djoser.urls.authtoken")),
-    path("", include("djoser.urls")),
+    path("auth/", include("djoser.urls")),
+    path("auth/token/", include("djoser.urls.authtoken")),
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Статика для отладки
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
