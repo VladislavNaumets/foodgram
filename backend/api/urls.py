@@ -43,20 +43,24 @@ urlpatterns = [
             {'post': 'manage_favorites', 'delete': 'manage_favorites'}),
         name="favorite",
     ),
-    path("users/me/avatar/", UserViewSet.as_view(), name="user-avatar"),
+    path(
+        "users/me/avatar/",
+        UserViewSet.as_view({"put": "avatar", "delete": "avatar"}),
+        name="user-avatar",
+    ),
     path(
         "users/subscriptions/",
-        UserViewSet.as_view(),
+        UserViewSet.as_view({"get": "subscriptions"}),
         name="subscriptions",
     ),
     path(
-        "users/me/",
-        UserViewSet.as_view({"get": "retrieve"}),
-        name="user-me",
+        "users/me/avatar/",
+        UserViewSet.as_view({"put": "avatar", "delete": "avatar"}),
+        name="user-avatar",
     ),
     path(
         "users/<int:user_id>/subscribe/",
-        UserViewSet.as_view({"post": "create", "delete": "destroy"}),
+        UserViewSet.as_view({"post": "subscribe", "delete": "unsubscribe"}),
         name="subscribe-to",
     ),
 ]
