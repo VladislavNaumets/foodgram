@@ -41,10 +41,10 @@ class UserViewSet(UserViewSet):
 
     @action(
         detail=True, methods=["post"], permission_classes=[IsAuthenticated])
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, id=None):
         """Подписка на пользователя."""
-        print(f"📌 Попытка подписки: {request.user} -> {pk}")
-        subscribed_to = get_object_or_404(User, pk=pk)
+        print(f"📌 Попытка подписки: {request.user} -> {id}")
+        subscribed_to = get_object_or_404(User, id=id)
         if request.user == subscribed_to:
             return Response({"detail": "Нельзя подписаться на самого себя."},
                             status=status.HTTP_400_BAD_REQUEST)
