@@ -44,6 +44,9 @@
         with: 
           python-version: 3.9
           cache: 'pip'
+      - name: Ensure requirements directory exists
+        run: mkdir -p ./requirements  
+
       - name: Copy requirements.txt
         run: cp ./backend/requirements.txt ./requirements/requirements.txt  
       - name: Install dependencies 
