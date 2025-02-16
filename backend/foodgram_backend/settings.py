@@ -4,18 +4,17 @@ from pathlib import Path
 from django.core.management.utils import get_random_secret_key
 from dotenv import load_dotenv
 
-from constants.pagination_constants import DEFAULT_PAGE_SIZE
+from constants.constant import PAGE_SIZE
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-BASE_URL = os.getenv("BASE_URL", "http://localhost:7777")
 
 SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
-DEBUG = os.getenv('DEBUG') == 'True'
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -27,9 +26,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
-    'users.apps.UsersConfig',
+    'django_filters',
+    'api.apps.ApiConfig',
     'recipes.apps.RecipesConfig',
-    "api.apps.ApiConfig",
+    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -63,15 +63,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB", "django"),
-        "USER": os.getenv("POSTGRES_USER", "django"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", ""),
-        "PORT": int(os.getenv("DB_PORT", 5432)),
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'django'),
+        'USER': os.getenv('POSTGRES_USER', 'django'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', 5432),
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -88,10 +89,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LANGUAGE_CODE = 'ru-RU'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -99,38 +99,37 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / "collected_static"
+STATIC_ROOT = BASE_DIR / 'collected_static'
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = "/app/media/"
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'users.FoodgramUser'
-
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
     ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
     ],
-    "DEFAULT_FILTER_BACKENDS": [
-        "django_filters.rest_framework.DjangoFilterBackend",
-    ],
-    "DEFAULT_PAGINATION_CLASS": "api.pagination.FoodgramPagination",
-    "PAGE_SIZE": DEFAULT_PAGE_SIZE,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': PAGE_SIZE,
 }
 
+AUTH_USER_MODEL = 'users.User'
+
 DJOSER = {
-    "USERNAME_FIELD": "email",
-    "SERIALIZERS": {
-        "token_create": "api.serializers.TokenLoginSerializer",
-        "user": "api.serializers.NewUserSerializer",
+    'LOGIN_FIELD': 'email',
+    'HIDE_USERS': False,
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.UserPostSerializer',
+        'user': 'api.serializers.UserGetSerializer',
+        'current_user': 'api.serializers.UserGetSerializer',
     },
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
-    ],
+    'PERMISSIONS': {
+        'user': ('rest_framework.permissions.IsAuthenticatedOrReadOnly',),
+        'user_list': ('rest_framework.permissions.AllowAny',),
+    }
 }

@@ -1,16 +1,12 @@
-FROM python:3.9
-
+FROM python:3.9-slim
 WORKDIR /app
 
-COPY requirements/requirements.txt .
-
-
-RUN pip install -r requirements.txt --no-cache-dir --timeout=300
-
+COPY requirements.txt .
+RUN pip install -r requirements.txt --no-cache-dir
 COPY . .
 
-RUN chmod +x /app/entrypoint.sh
+COPY /entrypoint.prod.sh /entrypoint.prod.sh
+RUN chmod +x /entrypoint.prod.sh
+ENTRYPOINT ["/entrypoint.prod.sh"]
 
-ENTRYPOINT ["/app/entrypoint.sh"]
-
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "foodgram_backend.wsgi"]
+CMD ["gunicorn", "--bind", "0.0.0.0:7070", "foodgram_backend.wsgi"]

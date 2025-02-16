@@ -1,36 +1,48 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.admin import UserAdmin
 
-from recipes.models import Favorite, ShoppingCart
-from users.models import FoodgramUser, Subscription
-
-
-class FavoriteInline(admin.TabularInline):
-    model = Favorite
-    extra = 1
-    fk_name = "user"
+from users.models import Subscription, User
 
 
-class ShoppingCartInline(admin.TabularInline):
-    model = ShoppingCart
-    extra = 1
-    fk_name = "user"
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    """Административное представление кастомных пользователей."""
 
+    list_display = (
+        'id',
+        'username',
+        'first_name',
+        'last_name',
+        'email',
+        'get_subscribers',
+        'get_recipes',
+        'is_staff'
+    )
+    list_display_links = ('username',)
+    list_filter = ('is_active', 'is_superuser')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
 
-class SubscriptionInline(admin.TabularInline):
-    model = Subscription
-    extra = 1
-    fk_name = "user"
+    @admin.display(description='Сколько подписчиков')
+    def get_subscribers(self, object):
+        return object.authors.count()
 
-
-@admin.register(FoodgramUser)
-class UserAdmin(BaseUserAdmin):
-    list_display = ("username", "first_name", "last_name", "email")
-    search_fields = ("username", "email")
-    inlines = (SubscriptionInline, FavoriteInline, ShoppingCartInline)
+    @admin.display(description='Сколько рецептов')
+    def get_recipes(self, object):
+        return object.recipes.count()
 
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("user", "subscribed_to")
-    search_fields = ("user__username", "subscribed_to__username")
+    """Административное представление подписок пользователей."""
+
+    list_display = ('subscriber', 'author')
+    search_fields = ('subscriber__username', 'author__username')
+
+    def get_queryset(self, request):
+        """Возвращает оптимизированный queryset для списка подписок."""
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related('subscriber', 'author')
+        return queryset
+
+
+admin.site.empty_value_display = '-пусто-'
