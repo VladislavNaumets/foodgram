@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Exists, OuterRef
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
-from djoser.serializers import UserSerializer
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -14,7 +13,7 @@ from rest_framework.response import Response
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.pagination import FoodgramPagination
-from api.permissions import ActionRestriction, IsAuthorOrStaff
+from api.permissions import IsAuthorOrStaff
 from api.serializers import (AvatarSerializer, FavoriteSerializer,
                              IngredientSerializer, NewUserSerializer,
                              RecipeIWriteSerializer, RecipeReadSerializer,
@@ -28,86 +27,48 @@ User = get_user_model()
 
 
 class UserViewSet(UserViewSet):
-    """Переопределяет вьюсет пользователя от djoser."""
-
+    """Расширенный UserViewSet на основе Djoser."""
     serializer_class = NewUserSerializer
-    permission_classes = (ActionRestriction, IsAuthenticated)
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({"request": self.request})
-        return context
-
-    def retrieve(self, request, *args, **kwargs):
-        user = request.user
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
-
-
-class UserGetViewSet(viewsets.ViewSet):
-    """Предоставляет просмотр и создание юзера(ов)."""
-
     permission_classes = (AllowAny,)
 
-    def list(self, request):
-        queryset = User.objects.order_by("-date_joined")
-        paginator = FoodgramPagination()
-        paginated_queryset = paginator.paginate_queryset(queryset, request)
-        serializer = NewUserSerializer(paginated_queryset, many=True)
-        return paginator.get_paginated_response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        user = get_object_or_404(User, pk=pk)
-        serializer = NewUserSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def create(self, request, *args, **kwargs):
-        serializer = UserCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        response_serializer = UserSerializer(user)
-        return Response(
-            response_serializer.data, status=status.HTTP_201_CREATED
-        )
+    def get_serializer_class(self):
+        """Использует разные сериализаторы в зависимости от запроса."""
+        if self.action == "create":
+            return UserCreateSerializer
+        if self.action == "me":
+            return NewUserSerializer
+        return super().get_serializer_class()
 
     @action(
-        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
-    )
+        detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def subscribe(self, request, pk=None):
         """Подписка на пользователя."""
         subscribed_to = get_object_or_404(User, pk=pk)
-
         if request.user == subscribed_to:
-            return Response(
-                {"detail": "Нельзя подписаться на самого себя."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "Нельзя подписаться на самого себя."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         serializer = SubscribeActionSerializer(
-            data={"subscribed_to": subscribed_to.id},
-            context={"request": request}
+            data={
+                "subscribed_to": subscribed_to.id}, context={
+                    "request": request}
         )
         serializer.is_valid(raise_exception=True)
         subscription = serializer.save()
         return Response(
             SubscriptionSerializer(subscription).data,
-            status=status.HTTP_201_CREATED
-        )
+            status=status.HTTP_201_CREATED)
 
     @action(
-        detail=True, methods=["delete"], permission_classes=[IsAuthenticated]
-    )
+        detail=True, methods=["delete"],
+        permission_classes=[IsAuthenticated])
     def unsubscribe(self, request, pk=None):
         """Отписка от пользователя."""
         deleted_count, _ = Subscription.objects.filter(
-            user=request.user, subscribed_to__id=pk
-        ).delete()
-
+            user=request.user, subscribed_to__id=pk).delete()
         if deleted_count == 0:
-            return Response(
-                {"detail": "Подписка не найдена."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            return Response({"detail": "Подписка не найдена."},
+                            status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -115,37 +76,30 @@ class UserGetViewSet(viewsets.ViewSet):
     def subscriptions(self, request):
         """Получение списка подписок текущего пользователя."""
         current_user = request.user
-        queryset = (
-            User.objects.filter(subscribers__user=current_user)
-            .annotate(
-                recipes_count=Count("recipes"),
-                is_subscribed=Exists(
-                    Subscription.objects.filter(
-                        user=current_user, subscribed_to=OuterRef("pk")
-                    )
-                ),
-            )
-            .order_by("-date_joined")
-        )
+        queryset = (User.objects.filter(subscribers__user=current_user)
+                    .annotate(
+                        recipes_count=Count("recipes"),
+                        is_subscribed=Exists(
+                            Subscription.objects.filter(
+                                user=current_user,
+                                subscribed_to=OuterRef("pk"))),).order_by(
+                                    "-date_joined"))
         paginator = FoodgramPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializer = SubscriptionSerializer(paginated_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @action(
-        detail=False, methods=["put", "delete"], permission_classes=[
-            IsAuthenticated])
+    @action(detail=False, methods=["put", "delete"],
+            permission_classes=[IsAuthenticated])
     def avatar(self, request):
         """Обновление или удаление аватара пользователя."""
         user = request.user
-
         if request.method == "PUT":
             serializer = AvatarSerializer(
                 user, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-
         if request.method == "DELETE":
             if user.avatar:
                 user.avatar.delete()
