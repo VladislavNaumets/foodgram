@@ -143,7 +143,7 @@ sudo docker compose exec backend python manage.py tags_import
 - Сам сайт: `http://127.0.0.1/`
 
 ### 8. Остановка контейнеров
-Если нужно остановить проект, выполните:
+Если нужно остановить проект, выполните команду:
 ```bash
 sudo docker compose down
 ```
