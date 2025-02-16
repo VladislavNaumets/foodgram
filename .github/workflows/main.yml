@@ -45,7 +45,7 @@
           python-version: 3.9
           cache: 'pip'
       - name: Copy requirements.txt
-        run: cp ./backend/requirements/requirements.txt ./requirements/requirements.txt  
+        run: cp ./backend/requirements.txt ./requirements/requirements.txt  
       - name: Install dependencies 
         run: | 
           python -m pip install --upgrade pip 
