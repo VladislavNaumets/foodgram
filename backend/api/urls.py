@@ -18,11 +18,6 @@ urlpatterns = [
     path("", include("djoser.urls")),
     path("auth/", include("djoser.urls.authtoken")),
     path(
-        "recipes/download_shopping_cart/",
-        RecipeViewSet.as_view({'get': 'download_shopping_cart'}),
-        name="download",
-    ),
-    path(
         "users/",
         UserViewSet.as_view({"get": "list", "post": "create"}),
         name="user-list-create",
@@ -33,20 +28,9 @@ urlpatterns = [
         name="user-detail",
     ),
     path(
-        "recipes/<int:recipe_id>/shopping_cart/",
-        RecipeViewSet.as_view({"post": "create", "delete": "destroy"}),
-        name="shopping_cart",
-    ),
-    path(
-        "recipes/<int:recipe_id>/favorite/",
-        RecipeViewSet.as_view(
-            {'post': 'manage_favorites', 'delete': 'manage_favorites'}),
-        name="favorite",
-    ),
-    path(
-        "users/me/avatar/",
-        UserViewSet.as_view({"put": "avatar", "delete": "avatar"}),
-        name="user-avatar",
+        "users/<int:pk>/subscribe/",
+        UserViewSet.as_view({"post": "subscribe", "delete": "unsubscribe"}),
+        name="subscribe-to",
     ),
     path(
         "users/subscriptions/",
@@ -59,9 +43,22 @@ urlpatterns = [
         name="user-avatar",
     ),
     path(
-        "users/<int:pk>/subscribe/",
-        UserViewSet.as_view({"post": "subscribe", "delete": "unsubscribe"}),
-        name="subscribe-to",
+        "recipes/<int:pk>/shopping_cart/",
+        RecipeViewSet.as_view(
+            {"post": "manage_shopping_cart",
+             "delete": "manage_shopping_cart"}),
+        name="shopping_cart",
+    ),
+    path(
+        "recipes/<int:pk>/favorite/",
+        RecipeViewSet.as_view(
+            {'post': 'manage_favorites', 'delete': 'manage_favorites'}),
+        name="favorite",
+    ),
+    path(
+        "recipes/download_shopping_cart/",
+        RecipeViewSet.as_view({'get': 'download_shopping_cart'}),
+        name="download",
     ),
 ]
 
