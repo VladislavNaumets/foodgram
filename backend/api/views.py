@@ -202,14 +202,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe__cart_users__user=request.user
         ).select_related("ingredient")
 
-        content = self.create_shopping_cart_file(ingredients)
+        content = self.create_file(ingredients)
 
         response = HttpResponse(content, content_type="text/plain")
         response[
             "Content-Disposition"] = 'attachment; filename="shopping_list.txt"'
         return response
 
-    def create_shopping_cart_file(self, ingredients):
+    def create_file(self, ingredients):
         """Создает содержимое файла на основе элементов корзины."""
         in_cart = {}
 
