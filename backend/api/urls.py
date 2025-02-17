@@ -35,6 +35,11 @@ urlpatterns = [
         name="shopping-cart",
     ),
     path(
+        "recipes/download_shopping_cart/",
+        RecipeViewSet.as_view({"get": "download_shopping_cart"}),
+        name="download-shopping-cart",
+    ),
+    path(
         "recipes/<int:recipe_id>/favorite/",
         FavoriteViewSet.as_view({"post": "create", "delete": "destroy"}),
         name="favorite",
