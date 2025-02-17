@@ -12,6 +12,7 @@ from rest_framework.permissions import (SAFE_METHODS, AllowAny,
                                         IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from api.filters import IngredientFilter, RecipeFilter
@@ -31,7 +32,7 @@ from users.models import Subscription
 User = get_user_model()
 
 
-class NewUserViewSet(UserViewSet):
+class UserViewSet(UserViewSet):
     """Переопределяет вьюсет пользователя от djoser."""
 
     serializer_class = NewUserSerializer
@@ -54,7 +55,7 @@ class UserGetViewSet(viewsets.ViewSet):
     permission_classes = (AllowAny,)
 
     def list(self, request):
-        queryset = User.objects.order_by("id")
+        queryset = User.objects.all()
         paginator = FoodgramPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializer = NewUserSerializer(paginated_queryset, many=True)
@@ -93,45 +94,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
     pagination_class = None
-
-
-class ShoppingCartDownloadView(APIView):
-    """Скачивание списка покупок."""
-
-    renderer_classes = (PlainTextRenderer,)
-    permission_classes = (IsAuthenticated,)
-
-    def get(self, request, format=None):
-        ingredients = IngredientRecipe.objects.filter(
-            recipe__cart_users__user=request.user
-        ).select_related("ingredient")
-
-        content = self.create_file(ingredients)
-
-        response = Response(content)
-        response[
-            "Content-Disposition"
-        ] = 'attachment; filename="products_list.txt"'
-        return response
-
-    def create_file(self, ingredients):
-        """Создает содержимое файла на основе элементов корзины."""
-        in_cart = {}
-
-        for ingredient in ingredients:
-            ingredient_name = ingredient.ingredient.name
-            measurement_unit = ingredient.ingredient.measurement_unit
-            amount = ingredient.amount
-
-            in_cart[(ingredient_name, measurement_unit)] = (
-                in_cart.get((ingredient_name, measurement_unit), 0) + amount
-            )
-
-        cart = [
-            f"{key[0]} - {value}({key[1]})" for key, value in in_cart.items()
-        ]
-        content = "\n".join(cart)
-        return content
 
 
 class ReturnShortLinkRecipeAPI(APIView):
@@ -194,42 +156,83 @@ class RecipeViewSet(viewsets.ModelViewSet):
         context.update({"request": self.request})
         return context
 
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        permission_classes=[IsAuthenticated],
+        url_path="shopping-cart",
+    )
+    def shopping_cart(self, request, pk=None):
+        """Добавление или удаление рецепта из корзины."""
+        recipe = self.get_object()
 
-class ShoppingCartViewSet(viewsets.ModelViewSet):
-    """Добавление или удаление рецепта из корзины."""
-
-    permission_classes = (IsAuthenticated,)
-    serializer_class = ShoppingCartSerializer
-    queryset = ShoppingCart.objects.all()
-
-    def create(self, request, *args, **kwargs):
-        recipe_id = kwargs.get("recipe_id")
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer = self.get_serializer(
-            data={"recipe": recipe.id}, context={"request": request}
-        )
-
-        if serializer.is_valid():
-            cart_item = serializer.save()
+        if request.method == "POST":
+            # Добавление рецепта в корзину
+            serializer = ShoppingCartSerializer(
+                data={"recipe": recipe.id}, context={"request": request}
+            )
+            if serializer.is_valid():
+                cart_item = serializer.save()
+                return Response(
+                    self.get_serializer(cart_item).data,
+                    status=status.HTTP_201_CREATED,
+                )
             return Response(
-                self.get_serializer(cart_item).data,
-                status=status.HTTP_201_CREATED,
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == "DELETE":
+            # Удаление рецепта из корзины
+            deleted_count, _ = ShoppingCart.objects.filter(
+                user=request.user, recipe_id=recipe.id
+            ).delete()
+
+            if deleted_count == 0:
+                return Response(
+                    {"detail": "Рецепта нет в корзине."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated],
+        renderer_classes=[PlainTextRenderer],
+        url_path="download-shopping-cart",
+    )
+    def download_shopping_cart(self, request: Request):
+        """Скачивание списка покупок."""
+        ingredients = IngredientRecipe.objects.filter(
+            recipe__cart_users__user=request.user
+        ).select_related("ingredient")
+
+        content = self.create_shopping_cart_file(
+            ingredients)
+
+        response = Response(content)
+        response[
+            "Content-Disposition"
+        ] = 'attachment; filename="products_list.txt"'
+        return response
+
+    def create_shopping_cart_file(self, ingredients):
+        """Создает содержимое файла на основе элементов корзины."""
+        in_cart = {}
+
+        for ingredient in ingredients:
+            ingredient_name = ingredient.ingredient.name
+            measurement_unit = ingredient.ingredient.measurement_unit
+            amount = ingredient.amount
+
+            in_cart[(ingredient_name, measurement_unit)] = (
+                in_cart.get((ingredient_name, measurement_unit), 0) + amount
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, *args, **kwargs):
-        recipe_id = kwargs.get("recipe_id")
-        deleted_count, _ = ShoppingCart.objects.filter(
-            user=request.user, recipe_id=recipe_id
-        ).delete()
-
-        if deleted_count == 0:
-            return Response(
-                {"detail": "Рецепта нет в корзине."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        cart = [
+            f"{key[0]} - {value}({key[1]})" for key, value in in_cart.items()
+        ]
+        content = "\n".join(cart)
+        return content
 
 
 class FavoriteViewSet(viewsets.ModelViewSet):

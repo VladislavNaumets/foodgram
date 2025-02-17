@@ -4,26 +4,20 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from api.views import (AvatarUpdateView, FavoriteViewSet, IngredientViewSet,
-                       NewUserViewSet, RecipeViewSet, ShoppingCartDownloadView,
-                       ShoppingCartViewSet, SubscribeViewSet,
+                       UserViewSet, RecipeViewSet, SubscribeViewSet,
                        SubscriptionListAPI, TagViewSet, UserGetViewSet)
 
 app_name = "api"
 
-v1_router = DefaultRouter()
+router = DefaultRouter()
 
-v1_router.register(r"tags", TagViewSet, basename="tag")
-v1_router.register(r"ingredients", IngredientViewSet, basename="ingredient")
-v1_router.register(r"recipes", RecipeViewSet, basename="recipe")
+router.register(r"tags", TagViewSet, basename="tag")
+router.register(r"ingredients", IngredientViewSet, basename="ingredient")
+router.register(r"recipes", RecipeViewSet, basename="recipe")
 
 
 urlpatterns = [
-    path(
-        "recipes/download_shopping_cart/",
-        ShoppingCartDownloadView.as_view(),
-        name="download",
-    ),
-    path("", include(v1_router.urls)),
+    path("", include(router.urls)),
     path(
         "users/",
         UserGetViewSet.as_view({"get": "list", "post": "create"}),
@@ -35,9 +29,15 @@ urlpatterns = [
         name="user-detail",
     ),
     path(
-        "recipes/<int:recipe_id>/shopping_cart/",
-        ShoppingCartViewSet.as_view({"post": "create", "delete": "destroy"}),
-        name="shopping_cart",
+        "recipes/<int:pk>/shopping-cart/",
+        RecipeViewSet.as_view(
+            {"post": "shopping_cart", "delete": "shopping_cart"}),
+        name="shopping-cart",
+    ),
+    path(
+        "recipes/download-shopping-cart/",
+        RecipeViewSet.as_view({"get": "download_shopping_cart"}),
+        name="download-shopping-cart",
     ),
     path(
         "recipes/<int:recipe_id>/favorite/",
@@ -52,7 +52,7 @@ urlpatterns = [
     ),
     path(
         "users/me/",
-        NewUserViewSet.as_view({"get": "retrieve"}),
+        UserViewSet.as_view({"get": "retrieve"}),
         name="user-me",
     ),
     path(
