@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Exists, OuterRef
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import NoReverseMatch, reverse
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,14 +12,12 @@ from rest_framework.decorators import action
 from rest_framework.permissions import (SAFE_METHODS, AllowAny,
                                         IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.pagination import FoodgramPagination
 from api.permissions import ActionRestriction, IsAuthorOrStaff
-from api.renderer import PlainTextRenderer
 from api.serializers import (AvatarSerializer, FavoriteSerializer,
                              IngredientSerializer, NewUserSerializer,
                              RecipeIWriteSerializer, RecipeReadSerializer,
@@ -195,22 +194,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         permission_classes=[IsAuthenticated],
-        renderer_classes=[PlainTextRenderer],
         url_path="download-shopping-cart",
     )
-    def download_shopping_cart(self, request: Request):
+    def download_shopping_cart(self, request):
         """Скачивание списка покупок."""
         ingredients = IngredientRecipe.objects.filter(
             recipe__cart_users__user=request.user
         ).select_related("ingredient")
 
-        content = self.create_shopping_cart_file(
-            ingredients)
+        content = self.create_shopping_cart_file(ingredients)
 
-        response = Response(content)
+        response = HttpResponse(content, content_type="text/plain")
         response[
-            "Content-Disposition"
-        ] = 'attachment; filename="products_list.txt"'
+            "Content-Disposition"] = 'attachment; filename="shopping_list.txt"'
         return response
 
     def create_shopping_cart_file(self, ingredients):
