@@ -29,13 +29,13 @@ urlpatterns = [
         name="user-detail",
     ),
     path(
-        "recipes/<int:pk>/shopping-cart/",
+        "recipes/<int:pk>/shopping_cart/",
         RecipeViewSet.as_view(
             {"post": "shopping_cart", "delete": "shopping_cart"}),
         name="shopping-cart",
     ),
     path(
-        "recipes/download-shopping-cart/",
+        "recipes/download-shopping_cart/",
         RecipeViewSet.as_view({"get": "download_shopping_cart"}),
         name="download-shopping-cart",
     ),
