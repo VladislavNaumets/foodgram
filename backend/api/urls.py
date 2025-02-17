@@ -35,7 +35,7 @@ urlpatterns = [
         name="shopping-cart",
     ),
     path(
-        "recipes/download-shopping_cart/",
+        "recipes/download_shopping_cart/",
         RecipeViewSet.as_view({"get": "download_shopping_cart"}),
         name="download-shopping-cart",
     ),
