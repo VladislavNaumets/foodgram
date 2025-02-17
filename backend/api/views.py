@@ -164,24 +164,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         """Добавление или удаление рецепта из корзины."""
-        recipe = self.get_object()
+        recipe = get_object_or_404(Recipe, id=pk)
 
         if request.method == "POST":
-            # Добавление рецепта в корзину
             serializer = ShoppingCartSerializer(
                 data={"recipe": recipe.id}, context={"request": request}
             )
             if serializer.is_valid():
                 cart_item = serializer.save()
                 return Response(
-                    self.get_serializer(cart_item).data,
+                    ShoppingCartSerializer(cart_item).data,
                     status=status.HTTP_201_CREATED,
                 )
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == "DELETE":
-            # Удаление рецепта из корзины
             deleted_count, _ = ShoppingCart.objects.filter(
                 user=request.user, recipe_id=recipe.id
             ).delete()
