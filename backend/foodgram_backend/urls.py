@@ -6,7 +6,7 @@ from django.urls import include, path
 from api.views import ReturnShortLinkRecipeAPI
 
 urlpatterns = [
-    path("api/", include("api.urls")),
+    path('api/', include('api.urls', namespace='api')),
     path("admin/", admin.site.urls),
     path(
         "s/<str:short_link>/",
