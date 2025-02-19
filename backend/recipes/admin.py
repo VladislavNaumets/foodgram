@@ -1,93 +1,38 @@
 from django.contrib import admin
 
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    ShoppingCart,
-    Tag,
-)
+from recipes.models import Ingredient, IngredientRecipe, Recipe, Tag, TagRecipe
 
 
-class OptimizedQuerysetMixin:
-    """Миксин для оптимизации запросов."""
-
-    def get_queryset(self, request):
-        """Возвращает оптимизированный queryset."""
-        queryset = super().get_queryset(request)
-        queryset = queryset.select_related(
-            'user', 'recipe__author'
-        ).prefetch_related(
-            'recipe__tags',
-            'recipe__recipe_ingredients__ingredient'
-        )
-        return queryset
+class TagRecipeInline(admin.TabularInline):
+    model = TagRecipe
+    extra = 1
 
 
-class RecipeIngredientInline(admin.TabularInline):
-    """Инлайн для ингредиентов рецепта."""
-
-    model = RecipeIngredient
-    extra = 0
+class IngredientRecipeInline(admin.TabularInline):
+    model = IngredientRecipe
+    extra = 1
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    """Административное представление рецептов."""
+    inlines = (TagRecipeInline, IngredientRecipeInline)
+    list_display = ("name", "author", "favorite_count_display")
+    search_fields = ("author__username", "name")
+    list_filter = ("tags",)
+    readonly_fields = ("favorite_count_display", "short_link")
 
-    list_display = (
-        'name',
-        'author',
-    )
-    search_fields = ('name',)
-    list_filter = (
-        'author__username',
-        'tags'
-    )
-    inlines = (RecipeIngredientInline,)
-
-    def get_queryset(self, request):
-        """Возвращает оптимизированный queryset для списка рецептов."""
-        queryset = super().get_queryset(request)
-        queryset = queryset.select_related(
-            'author'
-        ).prefetch_related('tags', 'recipe_ingredients__ingredient')
-        return queryset
-
-
-@admin.register(Ingredient)
-class IngredientAdmin(admin.ModelAdmin):
-    """Административное представление ингредиентов рецепта."""
-
-    list_display = ('id', 'name', 'measurement_unit')
-    list_display_links = ('name',)
-    search_fields = ('name',)
+    @admin.display(description="Добавили в Избранное")
+    def favorite_count_display(self, obj):
+        return obj.favorited_by.count()
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    """Административное представление тегов рецепта."""
-
-    list_display = ('id', 'name', 'slug')
-    list_display_links = ('name',)
-    search_fields = ('name',)
+    list_display = ("name",)
+    search_fields = ("name",)
 
 
-@admin.register(Favorite)
-class FavoriteAdmin(admin.ModelAdmin, OptimizedQuerysetMixin):
-    """Административное представление избранного."""
-
-    list_display = ('user', 'recipe')
-    search_fields = ('user__username', 'recipe__name')
-
-
-@admin.register(ShoppingCart)
-class ShoppingCartAdmin(admin.ModelAdmin, OptimizedQuerysetMixin):
-    """Административное представление  списка покупок."""
-
-    list_display = ('user', 'recipe')
-    search_fields = ('user__username', 'recipe__name')
-
-
-admin.site.empty_value_display = '-пусто-'
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    list_display = ("name", "measurement_unit")
+    search_fields = ("name",)
