@@ -1,45 +1,40 @@
+import django_filters
+import django_filters.rest_framework as filters
 from django.contrib.auth import get_user_model
-from django_filters import rest_framework as filters
-
-from recipes.models import Ingredient, Recipe
+from recipes.models import Ingredient, Recipe, Tag
 
 User = get_user_model()
 
 
-class RecipeFilter(filters.FilterSet):
-    """Фильтр рецептов."""
-
-    is_favorited = filters.BooleanFilter(method="filter_is_favorited")
-    author = filters.ModelChoiceFilter(queryset=User.objects.all())
-    is_in_shopping_cart = filters.BooleanFilter(
-        method="filter_is_in_shopping_cart"
+class IngredientFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(
+        field_name='name',
+        lookup_expr='istartswith'
     )
-    tags = filters.CharFilter(method="filter_tags")
-
-    def filter_tags(self, queryset, name, value):
-        tags_list = value.split(",")
-        return queryset.filter(tags__slug__in=tags_list).distinct()
-
-    class Meta:
-        model = Recipe
-        fields = ["author", "tags", "is_favorited", "is_in_shopping_cart"]
-
-    def filter_is_favorited(self, queryset, name, value):
-        if self.request.user.is_authenticated and value:
-            return queryset.filter(favorited_by__user=self.request.user)
-        return queryset
-
-    def filter_is_in_shopping_cart(self, queryset, name, value):
-        if self.request.user.is_authenticated and value:
-            return queryset.filter(cart_users__user=self.request.user)
-        return queryset
-
-
-class IngredientFilter(filters.FilterSet):
-    """Фильтр ингредиентов."""
-
-    name = filters.CharFilter(lookup_expr="icontains")
 
     class Meta:
         model = Ingredient
-        fields = ["name"]
+        fields = ('name', 'measurement_unit')
+
+
+class RecipeFilter(filters.FilterSet):
+    tags = filters.ModelMultipleChoiceFilter(
+        field_name='tags__slug',
+        to_field_name='slug',
+        queryset=Tag.objects.all(),
+    )
+    author = filters.ModelChoiceFilter(queryset=User.objects.all())
+
+    class Meta:
+        model = Recipe
+        fields = ('tags', 'author')
+
+    def filter_queryset(self, queryset):
+        print("FILTERING")
+        tags = self.data.get('tags')
+        if tags and tags == "__all__":
+            return queryset
+        pk_in_kwargs = self.request.resolver_match.kwargs.get('pk')
+        if not tags and not pk_in_kwargs:
+            return Recipe.objects.none()
+        return super().filter_queryset(queryset)

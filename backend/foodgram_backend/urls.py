@@ -6,16 +6,11 @@ from django.urls import include, path
 from api.views import ReturnShortLinkRecipeAPI
 
 urlpatterns = [
-    path('api/', include('api.urls', namespace='api')),
-    path("admin/", admin.site.urls),
-    path(
-        "s/<str:short_link>/",
-        ReturnShortLinkRecipeAPI.as_view(),
-        name="recipe-short-link",
-    ),
+    path('admin/', admin.site.urls),
+    path('api/', include('api.urls')),
+    path('s/<slug:short_link>/', ReturnShortLinkRecipeAPI, name='short_url')
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(
-        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
-    )
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)
