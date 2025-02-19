@@ -1,56 +1,97 @@
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import RegexValidator
 from django.db import models
 
-from constants.user_constants import (EMAIL_MAX_LENGTH, NAME_MAX_LENGTH,
-                                      PASSWORD_MAX_LENGTH)
+from foodgram_backend.constants import TEXT_LENGTH_MAX, TEXT_LENGTH_MEDIUM
+from users.manager import UserManager
 
 
-class FoodgramUser(AbstractUser):
-    email = models.EmailField(
-        "Электронная почта", max_length=EMAIL_MAX_LENGTH, unique=True
+class User(AbstractUser):
+    """Кастомный пользователь системы."""
+
+    first_name = models.CharField(
+        'Имя',
+        max_length=TEXT_LENGTH_MEDIUM,
+        validators=[
+            RegexValidator(
+                regex=r'^[А-Яа-яЁёA-Za-z]+$',
+                message='Поле должно содержать только буквы',
+                code='invalid_name',
+            ),
+        ],
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=TEXT_LENGTH_MEDIUM,
+        validators=[
+            RegexValidator(
+                regex=r'^[А-Яа-яЁёA-Za-z]+$',
+                message='Поле должно содержать только буквы',
+                code='invalid_name',
+            ),
+        ],
     )
     username = models.CharField(
-        "Имя пользователя",
-        max_length=NAME_MAX_LENGTH,
+        'Никнейм',
+        max_length=TEXT_LENGTH_MEDIUM,
         unique=True,
-        validators=[RegexValidator(regex=r"^[\w.@+-]+\Z")],
+        error_messages={
+            'unique': 'Никнейм занят.',
+        },
+        validators=[UnicodeUsernameValidator()]
     )
-    first_name = models.CharField("Имя", max_length=NAME_MAX_LENGTH)
-    last_name = models.CharField("Фамилия", max_length=NAME_MAX_LENGTH)
-    password = models.CharField("Пароль", max_length=PASSWORD_MAX_LENGTH)
-    avatar = models.ImageField(
-        upload_to="users/", null=True, blank=True, verbose_name="Аватар"
+    email = models.EmailField(
+        'Электронная почта',
+        max_length=TEXT_LENGTH_MAX,
+        unique=True
     )
+    avatar = models.ImageField('Аватар', upload_to='users/')
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username", "first_name", "last_name"]
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username', 'password']
+    USERNAME_FIELD = 'email'
+
+    objects = UserManager()
 
     class Meta:
-        verbose_name = "Пользователь"
-        verbose_name_plural = "Пользователи"
-        ordering = ["username"]
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+        ordering = ('username',)
 
     def __str__(self):
-        return f"{self.email}: {self.first_name} {self.last_name}"
+        return self.username
 
 
 class Subscription(models.Model):
-    user = models.ForeignKey(
-        FoodgramUser, related_name="subscriptions", on_delete=models.CASCADE
-    )
-    subscribed_to = models.ForeignKey(
-        FoodgramUser,
-        related_name="subscribers",
+    """Подписка на автора."""
+
+    subscriber = models.ForeignKey(
+        User,
         on_delete=models.CASCADE,
-        verbose_name="Подписан на",
+        verbose_name='Подписчик',
+        related_name='subscribers',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор',
+        related_name='authors',
     )
 
     class Meta:
-        verbose_name = "Подписка"
-        verbose_name_plural = "Подписки"
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        ordering = ('subscriber',)
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "subscribed_to"], name="unique_subscription"
+                fields=['subscriber', 'author'],
+                name='unique_subscriber_author'
+            ),
+            models.CheckConstraint(
+                name='check_subscriber_author',
+                check=~models.Q(subscriber=models.F('author')),
             )
         ]
+
+    def __str__(self):
+        return f'{self.subscriber} подписан на {self.author}'

@@ -1,30 +1,19 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (FavoriteViewSet, IngredientsViewset, RecipesViewset,
-                    TagViewset, UserViewset)
+from api.views import IngredientViewSet, RecipeViewSet, TagViewSet, UserViewSet
 
 app_name = 'api'
 
-router = DefaultRouter()
+router_v1 = DefaultRouter()
 
-router.register('recipes', RecipesViewset, basename='recipes')
-router.register('ingredients', IngredientsViewset, basename='ingredients')
-router.register('tags', TagViewset, basename='tags')
-router.register('users', UserViewset, basename='users')
+router_v1.register('users', UserViewSet, basename='user')
+router_v1.register('recipes', RecipeViewSet, basename='recipe')
+router_v1.register('ingredients', IngredientViewSet, basename='ingredient')
+router_v1.register('tags', TagViewSet, basename='tag')
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('auth/', include('djoser.urls')),
+    path('', include(router_v1.urls)),
+    path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
-    path('recipes/<int:pk>/shopping_cart/',
-         RecipesViewset.as_view({
-             'post': 'shopping_cart',
-             'delete': 'shopping_cart'
-         }), name='shopping_cart'),
-    path('recipes/<int:pk>/favorite/',
-         FavoriteViewSet.as_view({
-             'post': 'favorite',
-             'delete': 'favorite'
-         }), name='favorite'),
 ]
