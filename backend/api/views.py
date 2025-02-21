@@ -244,6 +244,38 @@ class RecipeViewSet(viewsets.ModelViewSet):
         content = "\n".join(cart)
         return content
 
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        url_path="favorite",
+        permission_classes=[IsAuthenticated],
+    )
+    def favorite(self, request, pk=None):
+        """Добавление или удаление рецепта в Избранное."""
+        if request.method == "POST":
+            recipe = get_object_or_404(Recipe, id=pk)
+            serializer = FavoriteSerializer(
+                data={"recipe": recipe.id}, context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            fav_item = serializer.save()
+            return Response(
+                FavoriteSerializer(fav_item).data,
+                status=status.HTTP_201_CREATED,
+            )
+
+        if request.method == "DELETE":
+            deleted_count, _ = Favorite.objects.filter(
+                user=request.user, recipe_id=pk
+            ).delete()
+
+            if deleted_count == 0:
+                return Response(
+                    {"detail": "Рецепта нет в Избранном."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(detail=True, methods=["get"], url_path="get-link")
     def get_link(self, request, pk=None):
         """Получение короткой ссылки к рецепту."""
@@ -266,42 +298,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context.update({"request": self.request})
         return context
-
-
-class FavoriteViewSet(viewsets.ModelViewSet):
-    """Добавление или удаление рецепта в Избранное."""
-
-    permission_classes = (IsAuthenticated,)
-    serializer_class = FavoriteSerializer
-    queryset = Favorite.objects.all()
-
-    def create(self, request, *args, **kwargs):
-        recipe_id = kwargs.get("recipe_id")
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer = self.get_serializer(
-            data={"recipe": recipe.id}, context={"request": request}
-        )
-
-        if serializer.is_valid():
-            fav_item = serializer.save()
-            return Response(
-                self.get_serializer(fav_item).data,
-                status=status.HTTP_201_CREATED,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, *args, **kwargs):
-        recipe_id = kwargs.get("recipe_id")
-        deleted_count, _ = Favorite.objects.filter(
-            user=request.user, recipe_id=recipe_id
-        ).delete()
-
-        if deleted_count == 0:
-            return Response(
-                {"detail": "Рецепта нет в Избранном."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SubscriptionListAPI(generics.ListAPIView):

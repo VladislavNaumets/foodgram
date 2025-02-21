@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from api.views import (FavoriteViewSet, IngredientViewSet,
+from api.views import (IngredientViewSet,
                        RecipeViewSet, SubscribeViewSet,
                        SubscriptionListAPI, TagViewSet, UserGetViewSet)
 
@@ -19,21 +19,6 @@ v1_router.register(r"recipes", RecipeViewSet, basename="recipe")
 
 urlpatterns = [
     path("", include(v1_router.urls)),
-    # path(
-    #     "users/",
-    #     UserGetViewSet.as_view({"get": "list", "post": "create"}),
-    #     name="user-list-create",
-    # ),
-    # path(
-    #     "users/<int:pk>/",
-    #     UserGetViewSet.as_view({"get": "retrieve"}),
-    #     name="user-detail",
-    # ),
-    path(
-        "recipes/<int:recipe_id>/favorite/",
-        FavoriteViewSet.as_view({"post": "create", "delete": "destroy"}),
-        name="favorite",
-    ),
     path(
         "users/subscriptions/",
         SubscriptionListAPI.as_view(),
