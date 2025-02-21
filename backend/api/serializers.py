@@ -306,6 +306,10 @@ class RecipeRepresentation(serializers.ModelSerializer):
 class ShoppingCartSerializer(serializers.ModelSerializer):
     """Сериализатор корзины с рецептами."""
 
+    recipe = serializers.PrimaryKeyRelatedField(
+        queryset=Recipe.objects.all()
+    )
+
     class Meta:
         model = ShoppingCart
         fields = ("recipe",)

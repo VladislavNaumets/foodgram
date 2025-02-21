@@ -51,7 +51,13 @@ class NewUserViewSet(UserViewSet):
 class UserGetViewSet(viewsets.ViewSet):
     """Предоставляет просмотр и создание юзера(ов)."""
 
+    queryset = User.objects.all()
+    serializer_class = NewUserSerializer
     permission_classes = (AllowAny,)
+
+    def get_serializer(self, *args, **kwargs):
+        """Возвращает экземпляр сериализатора."""
+        return self.serializer_class(*args, **kwargs)
 
     def list(self, request):
         queryset = User.objects.order_by("id")
@@ -71,8 +77,40 @@ class UserGetViewSet(viewsets.ViewSet):
         user = serializer.save()
         response_serializer = UserSerializer(user)
         return Response(
-            response_serializer.data, status=status.HTTP_201_CREATED
-        )
+            response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="me",
+        permission_classes=[IsAuthenticated])
+    def get_me(self, request):
+        """Получение информации о текущем пользователе."""
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=["put", "delete"],
+        url_path="me/avatar",
+        permission_classes=[IsAuthenticated],
+    )
+    def manage_avatar(self, request):
+        """Обновление или удаление аватара пользователя."""
+        user = request.user
+
+        if request.method == "PUT":
+            serializer = AvatarSerializer(
+                user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                serializer.data, status=status.HTTP_200_OK)
+
+        if request.method == "DELETE":
+            if user.avatar:
+                user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -93,45 +131,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
     pagination_class = None
-
-
-class ShoppingCartDownloadView(APIView):
-    """Скачивание списка покупок."""
-
-    renderer_classes = (PlainTextRenderer,)
-    permission_classes = (IsAuthenticated,)
-
-    def get(self, request, format=None):
-        ingredients = IngredientRecipe.objects.filter(
-            recipe__cart_users__user=request.user
-        ).select_related("ingredient")
-
-        content = self.create_file(ingredients)
-
-        response = Response(content)
-        response[
-            "Content-Disposition"
-        ] = 'attachment; filename="products_list.txt"'
-        return response
-
-    def create_file(self, ingredients):
-        """Создает содержимое файла на основе элементов корзины."""
-        in_cart = {}
-
-        for ingredient in ingredients:
-            ingredient_name = ingredient.ingredient.name
-            measurement_unit = ingredient.ingredient.measurement_unit
-            amount = ingredient.amount
-
-            in_cart[(ingredient_name, measurement_unit)] = (
-                in_cart.get((ingredient_name, measurement_unit), 0) + amount
-            )
-
-        cart = [
-            f"{key[0]} - {value}({key[1]})" for key, value in in_cart.items()
-        ]
-        content = "\n".join(cart)
-        return content
 
 
 class ReturnShortLinkRecipeAPI(APIView):
@@ -171,6 +170,80 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
         )
 
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        url_path="shopping_cart",
+        permission_classes=[IsAuthenticated],
+    )
+    def shopping_cart(self, request, pk=None):
+        """Добавление или удаление рецепта из корзины."""
+        if request.method == "POST":
+            # Добавление в корзину
+            recipe = get_object_or_404(Recipe, id=pk)
+            serializer = ShoppingCartSerializer(
+                data={"recipe": recipe.id}, context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            cart_item = serializer.save()
+            return Response(
+                ShoppingCartSerializer(cart_item).data,
+                status=status.HTTP_201_CREATED,
+            )
+
+        if request.method == "DELETE":
+            # Удаление из корзины
+            deleted_count, _ = ShoppingCart.objects.filter(
+                user=request.user, recipe_id=pk
+            ).delete()
+
+            if deleted_count == 0:
+                return Response(
+                    {"detail": "Рецепта нет в корзине."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="download_shopping_cart",
+        permission_classes=[IsAuthenticated],
+        renderer_classes=[PlainTextRenderer],
+    )
+    def download_shopping_cart(self, request):
+        """Метод для скачивания списка покупок."""
+        ingredients = IngredientRecipe.objects.filter(
+            recipe__cart_users__user=request.user
+        ).select_related("ingredient")
+
+        content = self.create_file(ingredients)
+
+        response = Response(content)
+        response[
+            "Content-Disposition"
+        ] = 'attachment; filename="products_list.txt"'
+        return response
+
+    def create_file(self, ingredients):
+        """Создает содержимое файла на основе элементов корзины."""
+        in_cart = {}
+
+        for ingredient in ingredients:
+            ingredient_name = ingredient.ingredient.name
+            measurement_unit = ingredient.ingredient.measurement_unit
+            amount = ingredient.amount
+
+            in_cart[(ingredient_name, measurement_unit)] = (
+                in_cart.get((ingredient_name, measurement_unit), 0) + amount
+            )
+
+        cart = [
+            f"{key[0]} - {value}({key[1]})" for key, value in in_cart.items()
+        ]
+        content = "\n".join(cart)
+        return content
+
     @action(detail=True, methods=["get"], url_path="get-link")
     def get_link(self, request, pk=None):
         """Получение короткой ссылки к рецепту."""
@@ -193,43 +266,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context.update({"request": self.request})
         return context
-
-
-class ShoppingCartViewSet(viewsets.ModelViewSet):
-    """Добавление или удаление рецепта из корзины."""
-
-    permission_classes = (IsAuthenticated,)
-    serializer_class = ShoppingCartSerializer
-    queryset = ShoppingCart.objects.all()
-
-    def create(self, request, *args, **kwargs):
-        recipe_id = kwargs.get("recipe_id")
-        recipe = get_object_or_404(Recipe, id=recipe_id)
-        serializer = self.get_serializer(
-            data={"recipe": recipe.id}, context={"request": request}
-        )
-
-        if serializer.is_valid():
-            cart_item = serializer.save()
-            return Response(
-                self.get_serializer(cart_item).data,
-                status=status.HTTP_201_CREATED,
-            )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, *args, **kwargs):
-        recipe_id = kwargs.get("recipe_id")
-        deleted_count, _ = ShoppingCart.objects.filter(
-            user=request.user, recipe_id=recipe_id
-        ).delete()
-
-        if deleted_count == 0:
-            return Response(
-                {"detail": "Рецепта нет в корзине."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FavoriteViewSet(viewsets.ModelViewSet):
@@ -327,25 +363,4 @@ class SubscribeViewSet(viewsets.ModelViewSet):
                 {"detail": "Подписка не найдена."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class AvatarUpdateView(generics.UpdateAPIView):
-    """Обновление / удаление аватара."""
-
-    queryset = User.objects.all()
-    serializer_class = AvatarSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def put(self, request, *args, **kwargs):
-        user = request.user
-        serializer = self.get_serializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def delete(self, request, *args, **kwargs):
-        user = request.user
-        if user.avatar:
-            user.avatar.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
