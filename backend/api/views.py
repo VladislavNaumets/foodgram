@@ -2,11 +2,10 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Exists, OuterRef
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import NoReverseMatch, reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.serializers import UserSerializer
 from djoser.views import UserViewSet
-from rest_framework import generics, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (SAFE_METHODS, AllowAny,
                                         IsAuthenticated,
@@ -110,6 +109,68 @@ class UserGetViewSet(viewsets.ViewSet):
         if request.method == "DELETE":
             if user.avatar:
                 user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="subscriptions",
+        permission_classes=[IsAuthenticated],
+    )
+    def subscriptions(self, request):
+        """Получение списка подписок текущего пользователя."""
+        current_user = request.user
+        queryset = (
+            User.objects.filter(subscribers__user=current_user)
+            .annotate(
+                recipes_count=Count("recipes"),
+                is_subscribed=Exists(
+                    Subscription.objects.filter(
+                        user=current_user, subscribed_to=OuterRef("pk")
+                    )
+                ),
+            )
+            .order_by("id")
+        )
+
+        paginator = FoodgramPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = SubscriptionSerializer(
+            paginated_queryset, many=True, context={"request": request}
+        )
+        return paginator.get_paginated_response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        url_path="subscribe",
+        permission_classes=[IsAuthenticated],
+    )
+    def subscribe(self, request, pk=None):
+        """Подписаться или отписаться от пользователя."""
+        if request.method == "POST":
+            subscribed_to = get_object_or_404(User, id=pk)
+            serializer = SubscribeActionSerializer(
+                data={"subscribed_to": subscribed_to.id},
+                context={"request": request},
+            )
+            serializer.is_valid(raise_exception=True)
+            pair = serializer.save()
+            return Response(
+                SubscribeActionSerializer(pair).data,
+                status=status.HTTP_201_CREATED
+            )
+
+        if request.method == "DELETE":
+            deleted_count, _ = Subscription.objects.filter(
+                user=request.user, subscribed_to__id=pk
+            ).delete()
+
+            if deleted_count == 0:
+                return Response(
+                    {"detail": "Подписка не найдена."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -280,14 +341,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_link(self, request, pk=None):
         """Получение короткой ссылки к рецепту."""
         recipe = self.get_object()
-        try:
-            short_link = request.build_absolute_uri(
-                reverse("recipe-short-link", args=[recipe.short_link])
-            )
-        except NoReverseMatch:
-            return Response({"detail": "Маршрут не найден"}, status=404)
-
-        return Response({"short-link": short_link})
+        short_link = f"{settings.BASE_URL}/s/{recipe.short_link}"
+        return Response({"short-link": short_link}, status=status.HTTP_200_OK)
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -300,63 +355,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return context
 
 
-class SubscriptionListAPI(generics.ListAPIView):
-    """Получение списка подписок текущего юзера."""
-
-    serializer_class = SubscriptionSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_queryset(self):
-        current_user = self.request.user
-        return (
-            User.objects.filter(subscribers__user=current_user)
-            .annotate(
-                recipes_count=Count("recipes"),
-                is_subscribed=Exists(
-                    Subscription.objects.filter(
-                        user=current_user, subscribed_to=OuterRef("pk")
-                    )
-                ),
-            )
-            .order_by("id")
-        )
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["current_user"] = self.request.user
-        return context
-
-
-class SubscribeViewSet(viewsets.ModelViewSet):
-    """Подписаться / отписаться от кого-то."""
-
-    permission_classes = (IsAuthenticated,)
-    serializer_class = SubscribeActionSerializer
-
-    def create(self, request, *args, **kwargs):
-        user_id = kwargs.get("user_id")
-        subscrited_to = get_object_or_404(User, id=user_id)
-        serializer = self.get_serializer(
-            data={"subscribed_to": subscrited_to.id},
-            context={"request": request},
-        )
-
-        if serializer.is_valid():
-            pair = serializer.save()
-            return Response(
-                self.get_serializer(pair).data, status=status.HTTP_201_CREATED
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, *args, **kwargs):
-        user_id = kwargs.get("user_id")
-        deleted_count, _ = Subscription.objects.filter(
-            user=request.user, subscribed_to__id=user_id
-        ).delete()
-
-        if deleted_count == 0:
-            return Response(
-                {"detail": "Подписка не найдена."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+def short_link_redirect(request, short_link):
+    """Перенаправляет по короткой ссылке на страницу рецепта."""
+    recipe = get_object_or_404(Recipe, short_link=short_link)
+    recipe_url = f"{settings.BASE_URL}/recipes/{recipe.id}/"
+    return redirect(recipe_url)

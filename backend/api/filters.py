@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django_filters import rest_framework as filters
 
-from recipes.models import Ingredient, Recipe
+from recipes.models import Ingredient, Recipe, Tag
 
 User = get_user_model()
 
@@ -14,7 +14,11 @@ class RecipeFilter(filters.FilterSet):
     is_in_shopping_cart = filters.BooleanFilter(
         method="filter_is_in_shopping_cart"
     )
-    tags = filters.AllValuesMultipleFilter(field_name="tags__slug")
+    tags = filters.ModelMultipleChoiceFilter(
+        field_name="tags__slug",
+        to_field_name="slug",
+        queryset=Tag.objects.all(),
+    )
 
     class Meta:
         model = Recipe
