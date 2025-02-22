@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from recipes.models import Favorite, ShoppingCart
+from recipes.models import Favorite, Recipe, ShoppingCart
 from users.models import FoodgramUser, Subscription
 
 
@@ -25,6 +25,27 @@ class SubscriptionInline(admin.TabularInline):
 
 @admin.register(FoodgramUser)
 class UserAdmin(BaseUserAdmin):
-    list_display = ("username", "first_name", "last_name", "email")
+    list_display = (
+        "username",
+        "first_name",
+        "last_name",
+        "email",
+        "recipes_count",
+        "subscriptions_count",
+    )
     search_fields = ("username", "email")
     inlines = (SubscriptionInline, FavoriteInline, ShoppingCartInline)
+
+    @admin.display(description="Количество рецептов")
+    def recipes_count(self, obj):
+        return Recipe.objects.filter(author=obj).count()
+
+    @admin.display(description="Количество подписчиков")
+    def subscriptions_count(self, obj):
+        return obj.subscribers.count()
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("user", "subscribed_to")
+    search_fields = ("user__email", "subscribed_to__email")

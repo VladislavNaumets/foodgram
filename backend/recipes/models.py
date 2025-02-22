@@ -37,7 +37,15 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         "Время приготовления (в минутах)",
         blank=False,
-        validators=[MinValueValidator(COOKING_TIME)],
+        validators=[
+            MinValueValidator(
+                COOKING_TIME,
+                message=(
+                    f"Время приготовления не может быть меньше "
+                    f"{COOKING_TIME} минуты."
+                )
+            )
+        ],
     )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
     short_link = models.CharField(
@@ -81,6 +89,12 @@ class Ingredient(models.Model):
     measurement_unit = models.CharField(
         "Единица измерения", max_length=LENGTH_MESURE_UNIT
     )
+    constraints = [
+        models.UniqueConstraint(
+            fields=["name", "measurement_unit"],
+            name="unique_ingredient_measurement_unit",
+        )
+    ]
 
     class Meta:
         verbose_name = "Ингредиент"
@@ -149,21 +163,31 @@ class IngredientRecipe(models.Model):
         return f"{self.recipe} {self.ingredient}"
 
 
-class Favorite(models.Model):
+class UserRecipeBase(models.Model):
+    """Базовый класс для моделей с полями user и recipe."""
+
     user = models.ForeignKey(
         User,
-        related_name="favorites",
         on_delete=models.CASCADE,
-        verbose_name="Пользователи",
+        verbose_name="Пользователь",
     )
     recipe = models.ForeignKey(
-        Recipe,
-        related_name="favorited_by",
+        "Recipe",
         on_delete=models.CASCADE,
-        verbose_name="Рецепты",
+        verbose_name="Рецепт",
     )
 
     class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.user} {self.recipe}"[:LENGTH_TO_DISPLAY]
+
+
+class Favorite(UserRecipeBase):
+    """Модель избранных рецептов пользователя."""
+
+    class Meta(UserRecipeBase.Meta):
         verbose_name = "Избранное"
         verbose_name_plural = "Избранное"
         constraints = [
@@ -172,25 +196,11 @@ class Favorite(models.Model):
             )
         ]
 
-    def __str__(self):
-        return f"{self.user} {self.recipe}"
 
+class ShoppingCart(UserRecipeBase):
+    """Модель списка покупок пользователя."""
 
-class ShoppingCart(models.Model):
-    user = models.ForeignKey(
-        User,
-        related_name="in_cart",
-        on_delete=models.CASCADE,
-        verbose_name="Пользователи",
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        related_name="cart_users",
-        on_delete=models.CASCADE,
-        verbose_name="Рецепты",
-    )
-
-    class Meta:
+    class Meta(UserRecipeBase.Meta):
         verbose_name = "Список покупок"
         verbose_name_plural = "Список покупок"
         constraints = [
@@ -198,6 +208,3 @@ class ShoppingCart(models.Model):
                 fields=["user", "recipe"], name="unique_recipe_in_cart"
             )
         ]
-
-    def __str__(self):
-        return f"{self.user} {self.recipe}"
