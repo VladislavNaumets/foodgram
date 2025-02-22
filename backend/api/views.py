@@ -194,17 +194,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class ReturnShortLinkRecipeAPI(APIView):
-    """Перенаправляет на объект рецепта по короткой ссылке."""
-
-    permission_classes = (ActionRestriction,)
-
-    def get(self, request, short_link):
-        recipe = get_object_or_404(Recipe, short_link=short_link)
-        recipe_url = f"{settings.BASE_URL}/recipes/{recipe.id}/"
-        return redirect(recipe_url)
-
-
 class RecipeViewSet(viewsets.ModelViewSet):
     """CRUD для модели Recipe."""
 

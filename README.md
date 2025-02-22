@@ -18,8 +18,6 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 
-## [API документация](https://food.sytes.net/redoc/)
-
 ## [Администрирование](https://food.sytes.net/admin/)
 
 ## Запуск проекта на удаленном сервере
