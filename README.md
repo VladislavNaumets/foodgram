@@ -77,7 +77,7 @@ sudo docker compose -f docker-compose.production.yml up -d
     sudo service nginx reload
     ```
 
-## Запуск на локальной машине
+## Запуск на локальной машине:
 
 1. Скачать репозиторий (https://github.com/VladislavNaumets/foodgram)
 
