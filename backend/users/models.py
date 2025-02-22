@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from constants.user_constants import (EMAIL_MAX_LENGTH, NAME_MAX_LENGTH,
@@ -14,19 +15,24 @@ class FoodgramUser(AbstractUser):
         "Имя пользователя",
         max_length=NAME_MAX_LENGTH,
         unique=True,
-        validators=[RegexValidator(regex=r"^[\w.@+-]+\Z")],
+        validators=[UnicodeUsernameValidator()],
     )
     first_name = models.CharField("Имя", max_length=NAME_MAX_LENGTH)
     last_name = models.CharField("Фамилия", max_length=NAME_MAX_LENGTH)
     password = models.CharField("Пароль", max_length=PASSWORD_MAX_LENGTH)
     avatar = models.ImageField(
-        upload_to="users/", null=True, blank=True, verbose_name="Аватар"
+        upload_to="users/",
+        null=True,
+        blank=True,
+        default="",
+        verbose_name="Аватар",
     )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "first_name", "last_name"]
 
     class Meta:
+        ordering = ["email"]
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
 
@@ -36,7 +42,10 @@ class FoodgramUser(AbstractUser):
 
 class Subscription(models.Model):
     user = models.ForeignKey(
-        FoodgramUser, related_name="subscriptions", on_delete=models.CASCADE
+        FoodgramUser,
+        related_name="subscriptions",
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь",
     )
     subscribed_to = models.ForeignKey(
         FoodgramUser,
@@ -50,6 +59,19 @@ class Subscription(models.Model):
         verbose_name_plural = "Подписки"
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "subscribed_to"], name="unique_subscription"
+                fields=["user", "subscribed_to"],
+                name="unique_subscription"
             )
         ]
+
+    def clean(self):
+        """Запрещает подписку пользователя на самого себя."""
+        if self.user == self.subscribed_to:
+            raise ValidationError("Нельзя подписаться на самого себя.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user} подписан на {self.subscribed_to}"

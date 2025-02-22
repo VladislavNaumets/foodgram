@@ -133,4 +133,7 @@ DJOSER = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+    "VIEWS": {
+        "user": "api.views.UserViewSet",
+    },
 }

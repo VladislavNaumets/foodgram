@@ -30,7 +30,7 @@ from users.models import Subscription
 User = get_user_model()
 
 
-class NewUserViewSet(UserViewSet):
+class UserViewSet(UserViewSet):
     """Переопределяет вьюсет пользователя от djoser."""
 
     serializer_class = NewUserSerializer
@@ -59,7 +59,7 @@ class UserGetViewSet(viewsets.ViewSet):
         return self.serializer_class(*args, **kwargs)
 
     def list(self, request):
-        queryset = User.objects.order_by("id")
+        queryset = User.objects.all
         paginator = FoodgramPagination()
         paginated_queryset = paginator.paginate_queryset(queryset, request)
         serializer = NewUserSerializer(paginated_queryset, many=True)
@@ -208,9 +208,13 @@ class ReturnShortLinkRecipeAPI(APIView):
 class RecipeViewSet(viewsets.ModelViewSet):
     """CRUD для модели Recipe."""
 
-    permission_classes = (IsAuthorOrStaff,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthorOrStaff()]
 
     def get_queryset(self):
         user = (
