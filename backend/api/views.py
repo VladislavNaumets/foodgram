@@ -220,20 +220,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = (
             self.request.user if self.request.user.is_authenticated else None
         )
-        return (
-            Recipe.objects.prefetch_related("ingredients", "tags")
-            .select_related("author")
-            .annotate(
+        queryset = Recipe.objects.prefetch_related(
+            "ingredients", "tags").select_related("author")
+
+        if user:
+            queryset = queryset.annotate(
                 is_favorited=Exists(
-                    Favorite.objects.filter(user=user, recipe=OuterRef("pk"))
+                    Favorite.objects.filter(
+                        user=user,
+                        recipe=OuterRef("pk"))
                 ),
                 is_in_shopping_cart=Exists(
                     ShoppingCart.objects.filter(
-                        user=user, recipe=OuterRef("pk")
-                    )
+                        user=user,
+                        recipe=OuterRef("pk"))
                 ),
             )
-        )
+        return queryset
 
     @action(
         detail=True,
@@ -279,7 +282,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         """Метод для скачивания списка покупок."""
         ingredients = IngredientRecipe.objects.filter(
-            recipe__cart_users__user=request.user
+            recipe__shoppingcart__user=request.user
         ).select_related("ingredient")
 
         content = self.create_file(ingredients)
